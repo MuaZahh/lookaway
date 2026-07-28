@@ -12,9 +12,12 @@ final class AppCoordinator {
     private let overlayController: BreakOverlayController
     private let emergencyMonitor: EmergencyOverrideMonitor
     private let statusItemController: StatusItemController
+    private let notificationManager: PreBreakNotificationManager
+    private let shortcutManager: GlobalShortcutManager
     private let clock: ClockProviding
 
     private var scheduler: BreakScheduler
+    private var warningGate = BreakWarningGate()
 
     init(
         settingsStore: SettingsStore,
@@ -24,6 +27,8 @@ final class AppCoordinator {
         overlayController: BreakOverlayController = BreakOverlayController(),
         emergencyMonitor: EmergencyOverrideMonitor = EmergencyOverrideMonitor(),
         statusItemController: StatusItemController = StatusItemController(),
+        notificationManager: PreBreakNotificationManager = PreBreakNotificationManager(),
+        shortcutManager: GlobalShortcutManager = GlobalShortcutManager(),
         clock: ClockProviding = SystemClock()
     ) {
         self.settingsStore = settingsStore
@@ -33,6 +38,8 @@ final class AppCoordinator {
         self.overlayController = overlayController
         self.emergencyMonitor = emergencyMonitor
         self.statusItemController = statusItemController
+        self.notificationManager = notificationManager
+        self.shortcutManager = shortcutManager
         self.clock = clock
         var scheduler = BreakScheduler(settings: settingsStore.breakSettings)
         if let persistedState = schedulerStateStore.load() {
@@ -62,8 +69,15 @@ final class AppCoordinator {
         emergencyMonitor.onOverrideChanged = { [weak self] isActive in
             self?.setEmergencyOverrideActive(isActive)
         }
+        notificationManager.onStatusChange = { [weak self] status in
+            self?.stateStore.notificationStatus = status
+        }
+        shortcutManager.onTrigger = { [weak self] in
+            self?.extendCountdown()
+        }
 
         emergencyMonitor.start()
+        refreshIntegrationSettings()
         activityMonitor.start { [weak self] sample in
             self?.handle(sample)
         }
@@ -89,6 +103,14 @@ final class AppCoordinator {
         syncState()
     }
 
+    func sendTestNotification() {
+        notificationManager.sendTestBreakWarning(
+            remaining: settingsStore.notificationLeadMinutes * 60,
+            shortcut: settingsStore.extensionShortcutEnabled ? shortcutDisplayName : nil,
+            extensionMinutes: settingsStore.snoozeDurationMinutes
+        )
+    }
+
     private func settingsDidChange() {
         let wasEnabled = stateStore.isEnabled
         scheduler.updateSettings(settingsStore.breakSettings)
@@ -96,6 +118,8 @@ final class AppCoordinator {
         stateStore.launchAtLoginMessage = LaunchAtLoginManager.apply(
             enabled: settingsStore.launchAtLogin
         )
+        refreshIntegrationSettings()
+        updateWarningCycle()
 
         if !settingsStore.isEnabled {
             overlayController.hide()
@@ -117,6 +141,7 @@ final class AppCoordinator {
 
         let events = scheduler.tick(now: sample.now, idleSeconds: sample.idleSeconds)
         process(events: events)
+        maybeSendPreBreakNotification()
         syncState()
     }
 
@@ -134,13 +159,16 @@ final class AppCoordinator {
             case .breakStarted:
                 beginBreakPresentation()
             case .breakCompleted:
+                warningGate.reset()
                 stateStore.completedBreaks += 1
                 stateStore.lastEventMessage = "Break complete"
                 overlayController.hide()
             case .naturalBreakCompleted:
+                warningGate.reset()
                 stateStore.naturalBreaks += 1
                 stateStore.lastEventMessage = "Natural break counted"
             case .emergencyOverrideCompleted:
+                warningGate.reset()
                 stateStore.skippedBreaks += 1
                 stateStore.lastEventMessage = "Emergency override used"
                 overlayController.hide()
@@ -183,6 +211,25 @@ final class AppCoordinator {
         stateStore.lastEventMessage = "Break snoozed for \(Self.shortTime(snoozeSeconds))"
         overlayController.hide()
         overlayController.showSnoozeConfirmation(minutes: settingsStore.snoozeDurationMinutes)
+        warningGate.reset()
+        syncState()
+    }
+
+    private func extendCountdown() {
+        guard settingsStore.isEnabled, settingsStore.extensionShortcutEnabled else { return }
+
+        let wasBreakActive = scheduler.snapshot.isBreakActive
+        let extensionSeconds = settingsStore.snoozeDurationMinutes * 60
+        scheduler.postpone(now: clock.uptime, duration: extensionSeconds)
+
+        if wasBreakActive {
+            stateStore.skippedBreaks += 1
+            overlayController.hide()
+        }
+
+        warningGate.reset()
+        stateStore.lastEventMessage = "Added \(Self.shortTime(extensionSeconds))"
+        overlayController.showSnoozeConfirmation(minutes: settingsStore.snoozeDurationMinutes)
         syncState()
     }
 
@@ -194,6 +241,52 @@ final class AppCoordinator {
         stateStore.lastEventMessage = "Break dismissed"
         overlayController.hide()
         syncState()
+    }
+
+    private func refreshIntegrationSettings() {
+        notificationManager.updateAuthorization(
+            enabled: settingsStore.preBreakNotificationEnabled
+        )
+        stateStore.shortcutStatus = shortcutManager.configure(
+            enabled: settingsStore.extensionShortcutEnabled,
+            keyCode: settingsStore.extensionShortcutKeyCode,
+            modifiers: settingsStore.extensionShortcutModifiers
+        )
+    }
+
+    private func updateWarningCycle() {
+        maybeSendPreBreakNotification()
+    }
+
+    private func maybeSendPreBreakNotification() {
+        let remaining = remainingUntilBreak
+        let leadSeconds = settingsStore.notificationLeadMinutes * 60
+        guard warningGate.shouldNotify(
+            remaining: remaining,
+            leadTime: leadSeconds,
+            isBreakActive: scheduler.snapshot.isBreakActive,
+            isEnabled: settingsStore.isEnabled && settingsStore.preBreakNotificationEnabled
+        ) else { return }
+
+        notificationManager.sendBreakWarning(
+            remaining: remaining,
+            shortcut: settingsStore.extensionShortcutEnabled ? shortcutDisplayName : nil,
+            extensionMinutes: settingsStore.snoozeDurationMinutes
+        )
+    }
+
+    private var remainingUntilBreak: TimeInterval {
+        let snapshot = scheduler.snapshot
+        return snapshot.snoozeRemaining > 0
+            ? snapshot.snoozeRemaining
+            : max(0, scheduler.settings.workInterval - snapshot.activeElapsed)
+    }
+
+    private var shortcutDisplayName: String {
+        ShortcutFormatter.display(
+            keyCode: settingsStore.extensionShortcutKeyCode,
+            modifiers: settingsStore.extensionShortcutModifiers
+        )
     }
 
     private func syncState() {
@@ -213,10 +306,7 @@ final class AppCoordinator {
             return "Break \(Self.shortTime(snapshot.breakRemaining))"
         }
 
-        let remaining = snapshot.snoozeRemaining > 0
-            ? snapshot.snoozeRemaining
-            : max(0, scheduler.settings.workInterval - snapshot.activeElapsed)
-        return "\(Self.shortTime(remaining)) left"
+        return "\(Self.shortTime(remainingUntilBreak)) left"
     }
 
     private static func shortTime(_ seconds: TimeInterval) -> String {

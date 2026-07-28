@@ -13,6 +13,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         state: stateStore,
         onTakeBreakNow: { [weak self] in
             self?.coordinator.takeBreakNow()
+        },
+        onTestNotification: { [weak self] in
+            self?.coordinator.sendTestNotification()
         }
     )
 
@@ -42,5 +45,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func takeBreakNow() {
         coordinator.takeBreakNow()
+    }
+
+    func sendTestNotification() {
+        coordinator.sendTestNotification()
     }
 }

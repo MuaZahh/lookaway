@@ -60,6 +60,26 @@ final class SettingsStore: ObservableObject {
         didSet { persistAndNotify() }
     }
 
+    @Published var preBreakNotificationEnabled: Bool {
+        didSet { persistAndNotify() }
+    }
+
+    @Published var notificationLeadMinutes: Double {
+        didSet { persistAndNotify() }
+    }
+
+    @Published var extensionShortcutEnabled: Bool {
+        didSet { persistAndNotify() }
+    }
+
+    @Published var extensionShortcutKeyCode: Int {
+        didSet { persistAndNotify() }
+    }
+
+    @Published var extensionShortcutModifiers: Int {
+        didSet { persistAndNotify() }
+    }
+
     private let defaults: UserDefaults
 
     init(defaults: UserDefaults = .standard) {
@@ -80,6 +100,11 @@ final class SettingsStore: ObservableObject {
         self.breakTitle = preferences.breakTitle
         self.breakSubtitle = preferences.breakSubtitle
         self.launchAtLogin = preferences.launchAtLogin
+        self.preBreakNotificationEnabled = preferences.preBreakNotificationEnabled
+        self.notificationLeadMinutes = preferences.notificationLeadMinutes
+        self.extensionShortcutEnabled = preferences.extensionShortcutEnabled
+        self.extensionShortcutKeyCode = preferences.extensionShortcutKeyCode
+        self.extensionShortcutModifiers = preferences.extensionShortcutModifiers
         self.mode = preferences.mode
     }
 
@@ -112,6 +137,11 @@ final class SettingsStore: ObservableObject {
         breakTitle = preferences.breakTitle
         breakSubtitle = preferences.breakSubtitle
         launchAtLogin = preferences.launchAtLogin
+        preBreakNotificationEnabled = preferences.preBreakNotificationEnabled
+        notificationLeadMinutes = preferences.notificationLeadMinutes
+        extensionShortcutEnabled = preferences.extensionShortcutEnabled
+        extensionShortcutKeyCode = preferences.extensionShortcutKeyCode
+        extensionShortcutModifiers = preferences.extensionShortcutModifiers
     }
 
     private func persistAndNotify() {
@@ -128,7 +158,12 @@ final class SettingsStore: ObservableObject {
             allowSnooze: allowSnooze,
             breakTitle: breakTitle,
             breakSubtitle: breakSubtitle,
-            launchAtLogin: launchAtLogin
+            launchAtLogin: launchAtLogin,
+            preBreakNotificationEnabled: preBreakNotificationEnabled,
+            notificationLeadMinutes: notificationLeadMinutes,
+            extensionShortcutEnabled: extensionShortcutEnabled,
+            extensionShortcutKeyCode: extensionShortcutKeyCode,
+            extensionShortcutModifiers: extensionShortcutModifiers
         ).save(to: defaults)
         onChange?()
     }

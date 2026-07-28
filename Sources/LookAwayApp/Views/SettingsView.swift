@@ -6,6 +6,7 @@ struct SettingsView: View {
     @ObservedObject var state: AppStateStore
 
     let onTakeBreakNow: () -> Void
+    let onTestNotification: () -> Void
 
     var body: some View {
         ScrollView {
@@ -71,6 +72,66 @@ struct SettingsView: View {
                         Toggle("Play a sound when a break starts", isOn: $settings.playBreakSound)
                     }
                     .textFieldStyle(.roundedBorder)
+                    .padding(.top, 4)
+                }
+
+                GroupBox("Warning and shortcut") {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Toggle(
+                            "Show a macOS notification before each break",
+                            isOn: $settings.preBreakNotificationEnabled
+                        )
+
+                        if settings.preBreakNotificationEnabled {
+                            numberSetting(
+                                "Warn me",
+                                value: $settings.notificationLeadMinutes,
+                                range: 0.5...10,
+                                step: 0.5,
+                                unit: "min early"
+                            )
+
+                            Label(state.notificationStatus, systemImage: "bell")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            Button("Send Test Notification", action: onTestNotification)
+                        }
+
+                        Divider()
+
+                        Toggle(
+                            "Use a keyboard shortcut to add more time",
+                            isOn: $settings.extensionShortcutEnabled
+                        )
+
+                        if settings.extensionShortcutEnabled {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Extension shortcut")
+                                    Text("Click the shortcut, then press your new key combination.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                ShortcutRecorderView(
+                                    keyCode: $settings.extensionShortcutKeyCode,
+                                    modifiers: $settings.extensionShortcutModifiers
+                                )
+                                .frame(width: 150, height: 30)
+                            }
+
+                            Text("This adds your \(formatted(settings.snoozeDurationMinutes))-minute snooze time.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            Label(state.shortcutStatus, systemImage: "keyboard")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     .padding(.top, 4)
                 }
 

@@ -6,6 +6,8 @@ final class AppStateStore: ObservableObject {
     @Published var statusText = "Starting"
     @Published var lastEventMessage = ""
     @Published var launchAtLoginMessage = "Checking start at login…"
+    @Published var notificationStatus = "Checking notification permission…"
+    @Published var shortcutStatus = "Setting up extension shortcut…"
     @Published var isEnabled = true
     @Published var mode: BreakMode = .strict
     @Published var idleSeconds: TimeInterval = 0

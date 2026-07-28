@@ -16,10 +16,16 @@ away for a bit.
 - Covers all your screens but leaves your audio and microphone alone
 - Remembers your timer if the app or your Mac restarts
 - Opens again when you log back into your Mac
+- Gives you a macOS notification before the break starts
+- Lets you pick a global shortcut to add more time
 
 If it pops up while you are playing a game, on a call, or doing something
 important, press **Esc** and it will come back a few minutes later. You can
 change how long that snooze is in Settings.
+
+By default, LookAway also gives you a macOS notification one minute before the
+break. Press **Cmd + Option + S** to add your snooze time without leaving
+whatever app you are using. Both the warning time and shortcut can be changed.
 
 ## Install it
 
@@ -55,6 +61,8 @@ Click the little eye in the menu bar and choose **Settings**. You can change:
 - Countdown visibility
 - Break sound
 - Whether Esc can snooze
+- How early the macOS warning appears
+- Your global “add more time” keyboard shortcut
 - Whether LookAway starts at login
 - Activity detection and emergency-shortcut timing
 

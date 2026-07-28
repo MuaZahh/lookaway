@@ -5,12 +5,14 @@ final class SettingsWindowController: NSWindowController {
     init(
         settings: SettingsStore,
         state: AppStateStore,
-        onTakeBreakNow: @escaping () -> Void
+        onTakeBreakNow: @escaping () -> Void,
+        onTestNotification: @escaping () -> Void
     ) {
         let rootView = SettingsView(
             settings: settings,
             state: state,
-            onTakeBreakNow: onTakeBreakNow
+            onTakeBreakNow: onTakeBreakNow,
+            onTestNotification: onTestNotification
         )
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 620, height: 680),

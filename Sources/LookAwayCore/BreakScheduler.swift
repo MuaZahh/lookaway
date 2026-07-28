@@ -137,10 +137,25 @@ public struct BreakScheduler: Sendable {
         duration: TimeInterval
     ) {
         guard isBreakActive else { return }
+        postpone(now: now, duration: duration)
+    }
+
+    public mutating func postpone(
+        now: TimeInterval,
+        duration: TimeInterval
+    ) {
+        let remainingBeforePostpone: TimeInterval
+        if isBreakActive {
+            remainingBeforePostpone = 0
+        } else if snoozeRemaining > 0 {
+            remainingBeforePostpone = snoozeRemaining
+        } else {
+            remainingBeforePostpone = max(0, settings.workInterval - activeElapsed)
+        }
 
         lastTick = now
         activeElapsed = 0
-        snoozeRemaining = max(1, duration)
+        snoozeRemaining = remainingBeforePostpone + max(1, duration)
         breakElapsed = 0
         emergencyOverrideElapsed = 0
         isBreakActive = false

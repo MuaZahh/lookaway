@@ -12,6 +12,9 @@ struct LookAwayApp: App {
                 state: appDelegate.stateStore,
                 onTakeBreakNow: {
                     appDelegate.takeBreakNow()
+                },
+                onTestNotification: {
+                    appDelegate.sendTestNotification()
                 }
             )
         }

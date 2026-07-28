@@ -143,6 +143,18 @@ func snoozeSurvivesRestart() {
     expect(restored.tick(now: 1_300, idleSeconds: 0) == [.breakStarted], "restored snooze should finish on time")
 }
 
+func shortcutPostponesCurrentCountdownByExactDuration() {
+    var scheduler = BreakScheduler(settings: BreakSettings(workInterval: 20, breakDuration: 5))
+
+    expect(scheduler.tick(now: 0, idleSeconds: 0) == [], "initial tick should initialize")
+    expect(scheduler.tick(now: 12, idleSeconds: 0) == [], "partial work should accumulate")
+    scheduler.postpone(now: 12, duration: 10)
+
+    expectClose(scheduler.snapshot.snoozeRemaining, 18, "shortcut should add ten seconds to the existing eight")
+    expect(scheduler.tick(now: 29.99, idleSeconds: 0) == [], "extended countdown should not end early")
+    expect(scheduler.tick(now: 30, idleSeconds: 0) == [.breakStarted], "extended countdown should finish exactly on time")
+}
+
 func schedulerProgressRestoresWithoutCountingOfflineTime() {
     var original = BreakScheduler(settings: BreakSettings(workInterval: 20, breakDuration: 5))
 
@@ -189,11 +201,28 @@ func preferencesRoundTripThroughUserDefaults() {
         allowSnooze: false,
         breakTitle: "Rest your eyes",
         breakSubtitle: "Look out a window",
-        launchAtLogin: false
+        launchAtLogin: false,
+        preBreakNotificationEnabled: false,
+        notificationLeadMinutes: 2.5,
+        extensionShortcutEnabled: false,
+        extensionShortcutKeyCode: 49,
+        extensionShortcutModifiers: 4_352
     )
 
     expected.save(to: defaults)
     expect(LookAwayPreferences.load(from: defaults) == expected, "every preference should persist and reload")
+}
+
+func preBreakWarningFiresOncePerCountdown() {
+    var gate = BreakWarningGate()
+
+    expect(!gate.shouldNotify(remaining: 61, leadTime: 60, isBreakActive: false, isEnabled: true), "warning should wait")
+    expect(gate.shouldNotify(remaining: 60, leadTime: 60, isBreakActive: false, isEnabled: true), "warning should fire at threshold")
+    expect(!gate.shouldNotify(remaining: 59, leadTime: 60, isBreakActive: false, isEnabled: true), "warning should only fire once")
+    expect(!gate.shouldNotify(remaining: 300, leadTime: 60, isBreakActive: false, isEnabled: true), "extension should rearm warning")
+    expect(gate.shouldNotify(remaining: 60, leadTime: 60, isBreakActive: false, isEnabled: true), "extended countdown should warn again")
+    expect(!gate.shouldNotify(remaining: 60, leadTime: 60, isBreakActive: true, isEnabled: true), "active break should not warn")
+    expect(!gate.shouldNotify(remaining: 60, leadTime: 60, isBreakActive: false, isEnabled: false), "disabled warning should not fire")
 }
 
 startsBreakAtExactWorkInterval()
@@ -207,8 +236,10 @@ settingsAreNormalizedAndClampProgress()
 schedulerCanSnoozeAndStartAgainFiveMinutesLater()
 snoozeCanBeLongerThanWorkInterval()
 snoozeSurvivesRestart()
+shortcutPostponesCurrentCountdownByExactDuration()
 schedulerProgressRestoresWithoutCountingOfflineTime()
 rebasingClockDoesNotCountPausedTime()
 preferencesRoundTripThroughUserDefaults()
+preBreakWarningFiresOncePerCountdown()
 
 print("LookAwayCoreChecks passed")

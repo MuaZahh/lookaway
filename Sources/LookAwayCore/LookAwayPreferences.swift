@@ -14,6 +14,11 @@ public struct LookAwayPreferences: Equatable, Sendable {
     public var breakTitle: String
     public var breakSubtitle: String
     public var launchAtLogin: Bool
+    public var preBreakNotificationEnabled: Bool
+    public var notificationLeadMinutes: Double
+    public var extensionShortcutEnabled: Bool
+    public var extensionShortcutKeyCode: Int
+    public var extensionShortcutModifiers: Int
 
     public init(
         workIntervalMinutes: Double = 25,
@@ -28,7 +33,12 @@ public struct LookAwayPreferences: Equatable, Sendable {
         allowSnooze: Bool = true,
         breakTitle: String = "Look far away",
         breakSubtitle: String = "Blink slowly",
-        launchAtLogin: Bool = true
+        launchAtLogin: Bool = true,
+        preBreakNotificationEnabled: Bool = true,
+        notificationLeadMinutes: Double = 1,
+        extensionShortcutEnabled: Bool = true,
+        extensionShortcutKeyCode: Int = 1,
+        extensionShortcutModifiers: Int = 2_304
     ) {
         self.workIntervalMinutes = workIntervalMinutes
         self.breakDurationSeconds = breakDurationSeconds
@@ -43,6 +53,11 @@ public struct LookAwayPreferences: Equatable, Sendable {
         self.breakTitle = breakTitle
         self.breakSubtitle = breakSubtitle
         self.launchAtLogin = launchAtLogin
+        self.preBreakNotificationEnabled = preBreakNotificationEnabled
+        self.notificationLeadMinutes = notificationLeadMinutes
+        self.extensionShortcutEnabled = extensionShortcutEnabled
+        self.extensionShortcutKeyCode = extensionShortcutKeyCode
+        self.extensionShortcutModifiers = extensionShortcutModifiers
     }
 
     public static func load(from defaults: UserDefaults) -> LookAwayPreferences {
@@ -61,7 +76,12 @@ public struct LookAwayPreferences: Equatable, Sendable {
             allowSnooze: bool(defaults, key: Keys.allowSnooze, fallback: fallback.allowSnooze),
             breakTitle: defaults.string(forKey: Keys.breakTitle) ?? fallback.breakTitle,
             breakSubtitle: defaults.string(forKey: Keys.breakSubtitle) ?? fallback.breakSubtitle,
-            launchAtLogin: bool(defaults, key: Keys.launchAtLogin, fallback: fallback.launchAtLogin)
+            launchAtLogin: bool(defaults, key: Keys.launchAtLogin, fallback: fallback.launchAtLogin),
+            preBreakNotificationEnabled: bool(defaults, key: Keys.preBreakNotificationEnabled, fallback: fallback.preBreakNotificationEnabled),
+            notificationLeadMinutes: double(defaults, key: Keys.notificationLeadMinutes, fallback: fallback.notificationLeadMinutes),
+            extensionShortcutEnabled: bool(defaults, key: Keys.extensionShortcutEnabled, fallback: fallback.extensionShortcutEnabled),
+            extensionShortcutKeyCode: integer(defaults, key: Keys.extensionShortcutKeyCode, fallback: fallback.extensionShortcutKeyCode),
+            extensionShortcutModifiers: integer(defaults, key: Keys.extensionShortcutModifiers, fallback: fallback.extensionShortcutModifiers)
         )
     }
 
@@ -79,6 +99,11 @@ public struct LookAwayPreferences: Equatable, Sendable {
         defaults.set(breakTitle, forKey: Keys.breakTitle)
         defaults.set(breakSubtitle, forKey: Keys.breakSubtitle)
         defaults.set(launchAtLogin, forKey: Keys.launchAtLogin)
+        defaults.set(preBreakNotificationEnabled, forKey: Keys.preBreakNotificationEnabled)
+        defaults.set(notificationLeadMinutes, forKey: Keys.notificationLeadMinutes)
+        defaults.set(extensionShortcutEnabled, forKey: Keys.extensionShortcutEnabled)
+        defaults.set(extensionShortcutKeyCode, forKey: Keys.extensionShortcutKeyCode)
+        defaults.set(extensionShortcutModifiers, forKey: Keys.extensionShortcutModifiers)
     }
 
     private static func double(
@@ -99,6 +124,15 @@ public struct LookAwayPreferences: Equatable, Sendable {
         return defaults.bool(forKey: key)
     }
 
+    private static func integer(
+        _ defaults: UserDefaults,
+        key: String,
+        fallback: Int
+    ) -> Int {
+        guard defaults.object(forKey: key) != nil else { return fallback }
+        return defaults.integer(forKey: key)
+    }
+
     private enum Keys {
         static let workIntervalMinutes = "workIntervalMinutes"
         static let breakDurationSeconds = "breakDurationSeconds"
@@ -113,5 +147,10 @@ public struct LookAwayPreferences: Equatable, Sendable {
         static let breakTitle = "breakTitle"
         static let breakSubtitle = "breakSubtitle"
         static let launchAtLogin = "launchAtLogin"
+        static let preBreakNotificationEnabled = "preBreakNotificationEnabled"
+        static let notificationLeadMinutes = "notificationLeadMinutes"
+        static let extensionShortcutEnabled = "extensionShortcutEnabled"
+        static let extensionShortcutKeyCode = "extensionShortcutKeyCode"
+        static let extensionShortcutModifiers = "extensionShortcutModifiers"
     }
 }

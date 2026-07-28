@@ -33,6 +33,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if CommandLine.arguments.contains("--show-settings") {
             settingsWindowController.showWindow(nil)
         }
+        if CommandLine.arguments.contains("--test-notification") {
+            coordinator.sendTestNotification()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

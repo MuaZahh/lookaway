@@ -1,10 +1,16 @@
+import AppKit
 import Foundation
+import OSLog
 import UserNotifications
 
 final class PreBreakNotificationManager: NSObject, UNUserNotificationCenterDelegate {
     var onStatusChange: ((String) -> Void)?
 
     private let center = UNUserNotificationCenter.current()
+    private let logger = Logger(
+        subsystem: "app.lookaway.LookAway",
+        category: "notifications"
+    )
 
     override init() {
         super.init()
@@ -18,18 +24,15 @@ final class PreBreakNotificationManager: NSObject, UNUserNotificationCenterDeleg
         }
 
         center.getNotificationSettings { [weak self] settings in
+            self?.logger.info("Authorization status: \(settings.authorizationStatus.rawValue)")
             switch settings.authorizationStatus {
             case .authorized, .provisional, .ephemeral:
                 self?.publishStatus("macOS break warnings are on")
             case .denied:
                 self?.publishStatus("Allow notifications in System Settings → Notifications → LookAway")
             case .notDetermined:
-                self?.center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
-                    self?.publishStatus(
-                        granted
-                            ? "macOS break warnings are on"
-                            : "Notifications were not allowed"
-                    )
+                self?.center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+                    self?.handleAuthorizationResult(granted: granted, error: error)
                 }
             @unknown default:
                 self?.publishStatus("Notification status is unavailable")
@@ -45,7 +48,8 @@ final class PreBreakNotificationManager: NSObject, UNUserNotificationCenterDeleg
         addBreakWarning(
             remaining: remaining,
             shortcut: shortcut,
-            extensionMinutes: extensionMinutes
+            extensionMinutes: extensionMinutes,
+            isTest: false
         )
     }
 
@@ -62,24 +66,23 @@ final class PreBreakNotificationManager: NSObject, UNUserNotificationCenterDeleg
                 self.addBreakWarning(
                     remaining: remaining,
                     shortcut: shortcut,
-                    extensionMinutes: extensionMinutes
+                    extensionMinutes: extensionMinutes,
+                    isTest: true
                 )
             case .notDetermined:
-                self.center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
-                    self.publishStatus(
-                        granted
-                            ? "macOS break warnings are on"
-                            : "Notifications were not allowed"
-                    )
+                self.center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+                    self.handleAuthorizationResult(granted: granted, error: error)
                     guard granted else { return }
                     self.addBreakWarning(
                         remaining: remaining,
                         shortcut: shortcut,
-                        extensionMinutes: extensionMinutes
+                        extensionMinutes: extensionMinutes,
+                        isTest: true
                     )
                 }
             case .denied:
-                self.publishStatus("Allow notifications in System Settings → Notifications → LookAway")
+                self.publishStatus("Notifications are off — opening macOS Notification Settings")
+                self.openNotificationSettings()
             @unknown default:
                 self.publishStatus("Notification status is unavailable")
             }
@@ -89,7 +92,8 @@ final class PreBreakNotificationManager: NSObject, UNUserNotificationCenterDeleg
     private func addBreakWarning(
         remaining: TimeInterval,
         shortcut: String?,
-        extensionMinutes: Double
+        extensionMinutes: Double,
+        isTest: Bool
     ) {
         let content = UNMutableNotificationContent()
         content.title = Self.warningTitle(remaining: remaining)
@@ -105,7 +109,18 @@ final class PreBreakNotificationManager: NSObject, UNUserNotificationCenterDeleg
             content: content,
             trigger: nil
         )
-        center.add(request)
+        center.add(request) { [weak self] error in
+            if let error {
+                self?.logger.error("Notification request failed: \(error.localizedDescription, privacy: .public)")
+                self?.publishStatus("Notification failed: \(error.localizedDescription)")
+                return
+            }
+
+            self?.logger.info("Notification request accepted")
+            if isTest {
+                self?.publishStatus("Test notification sent")
+            }
+        }
     }
 
     func userNotificationCenter(
@@ -119,6 +134,31 @@ final class PreBreakNotificationManager: NSObject, UNUserNotificationCenterDeleg
     private func publishStatus(_ status: String) {
         DispatchQueue.main.async { [weak self] in
             self?.onStatusChange?(status)
+        }
+    }
+
+    private func handleAuthorizationResult(granted: Bool, error: Error?) {
+        if let error {
+            logger.error("Authorization failed: \(error.localizedDescription, privacy: .public)")
+            publishStatus("Notification permission failed: \(error.localizedDescription)")
+        } else if granted {
+            logger.info("Notification permission granted")
+            publishStatus("macOS break warnings are on")
+        } else {
+            logger.info("Notification permission denied")
+            publishStatus("Notifications were not allowed")
+        }
+    }
+
+    private func openNotificationSettings() {
+        guard let url = URL(
+            string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension"
+        ) else {
+            return
+        }
+
+        DispatchQueue.main.async {
+            NSWorkspace.shared.open(url)
         }
     }
 

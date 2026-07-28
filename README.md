@@ -9,8 +9,6 @@ It sits in the menu bar, keeps track of how long I have actually been using my
 Mac, and puts a break screen over my displays when it is time to look somewhere
 else.
 
-Nothing deep. Just: please stop staring at the screen for a second 😭
-
 ## What it does
 
 - Reminds you after 25 minutes of active laptop use

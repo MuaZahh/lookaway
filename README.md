@@ -23,7 +23,48 @@ If the reminder catches you in the middle of a game, call, or something
 important, just press **Esc**. It gets out of the way, shows a quick confirmation,
 and comes back five minutes later.
 
-## Running it
+## Install from a fresh clone
+
+You need macOS 14 or newer and Apple's free Command Line Tools. If you do not
+already have them, run:
+
+```sh
+xcode-select --install
+```
+
+Then clone, install, and open LookAway:
+
+```sh
+git clone https://github.com/MuaZahh/lookaway.git
+cd lookaway
+./script/install.sh
+```
+
+The installer makes a release build, copies it to `~/Applications/LookAway.app`,
+and opens it. No Xcode project setup is needed.
+
+The first time you open it, LookAway asks macOS to start it whenever you log in.
+If macOS needs you to approve that, go to:
+
+**System Settings → General → Login Items**
+
+## Change basically everything
+
+Click the eye icon in the menu bar and choose **Settings**. You can change:
+
+- Work, break, snooze, and natural-idle timing
+- The break-screen title and second line
+- Break mode
+- Countdown visibility
+- Break sound
+- Whether Esc can snooze
+- Whether LookAway starts at login
+- Activity detection and emergency-shortcut timing
+
+Everything is saved automatically. Pausing is intentionally temporary, so
+LookAway turns itself back on after you relaunch it or restart your Mac.
+
+## Run without installing
 
 Use the Codex Run action, or run:
 
@@ -31,22 +72,7 @@ Use the Codex Run action, or run:
 ./script/build_and_run.sh
 ```
 
-That builds `dist/LookAway.app` and launches it in your menu bar.
-
-The first time you open it, LookAway asks macOS to start it whenever you log in.
-If macOS needs you to approve that, go to:
-
-**System Settings → General → Login Items**
-
-## The normal setup
-
-- Work for 25 minutes
-- Look away for 60 seconds
-- Press **Esc** to snooze a break for 5 minutes
-- Hold **Cmd + Option + Esc** for 5 seconds if you really need the emergency exit
-
-There are also Gentle, Focused, Strict, Extreme, and Recovery modes depending on
-how aggressively you want the app to bother you.
+That makes a development build at `dist/LookAway.app` and opens it.
 
 ## Checking that it works
 

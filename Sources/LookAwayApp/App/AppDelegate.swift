@@ -8,12 +8,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsStore: settingsStore,
         stateStore: stateStore
     )
+    private lazy var settingsWindowController = SettingsWindowController(
+        settings: settingsStore,
+        state: stateStore,
+        onTakeBreakNow: { [weak self] in
+            self?.coordinator.takeBreakNow()
+        }
+    )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         ProcessInfo.processInfo.disableAutomaticTermination("LookAway monitors active screen use from the menu bar.")
         NSApp.setActivationPolicy(.accessory)
-        stateStore.launchAtLoginMessage = LaunchAtLoginManager.ensureEnabled()
+        stateStore.launchAtLoginMessage = LaunchAtLoginManager.apply(
+            enabled: settingsStore.launchAtLogin
+        )
+        coordinator.onOpenSettings = { [weak self] in
+            self?.settingsWindowController.showWindow(nil)
+        }
         coordinator.start()
+
+        if CommandLine.arguments.contains("--show-settings") {
+            settingsWindowController.showWindow(nil)
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

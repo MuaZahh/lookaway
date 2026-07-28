@@ -1,4 +1,5 @@
 import LookAwayCore
+import Foundation
 import SwiftUI
 
 struct BreakOverlayView: View {
@@ -18,18 +19,20 @@ struct BreakOverlayView: View {
                     .font(.system(size: 44, weight: .semibold))
                     .foregroundStyle(.white.opacity(mode.usesBlackout ? 0.18 : 0.9))
 
-                Text(TimeFormatter.clock(state.snapshot.breakRemaining))
-                    .font(.system(size: mode.usesBlackout ? 34 : 76, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(mode.usesBlackout ? 0.2 : 0.96))
-                    .monospacedDigit()
+                if settings.showCountdown {
+                    Text(TimeFormatter.clock(state.snapshot.breakRemaining))
+                        .font(.system(size: mode.usesBlackout ? 34 : 76, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(mode.usesBlackout ? 0.2 : 0.96))
+                        .monospacedDigit()
+                }
 
                 if !mode.usesBlackout {
                     VStack(spacing: 8) {
-                        Text("Look far away")
+                        Text(settings.breakTitle)
                             .font(.system(size: 28, weight: .semibold))
                             .foregroundStyle(.white)
 
-                        Text("Blink slowly")
+                        Text(settings.breakSubtitle)
                             .font(.title3)
                             .foregroundStyle(.white.opacity(0.72))
                     }
@@ -54,20 +57,33 @@ struct BreakOverlayView: View {
                     .padding(.top, 8)
                 }
 
-                Button(action: onSnooze) {
-                    Label("Remind Me in 5 Minutes", systemImage: "clock.arrow.circlepath")
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .foregroundStyle(.white)
-                .keyboardShortcut(.cancelAction)
+                if settings.allowSnooze {
+                    Button(action: onSnooze) {
+                        Label(
+                            "Remind Me in \(formattedSnoozeDuration)",
+                            systemImage: "clock.arrow.circlepath"
+                        )
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .foregroundStyle(.white)
+                    .keyboardShortcut(.cancelAction)
 
-                Text("Press Esc to snooze")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.55))
+                    Text("Press Esc to snooze")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.55))
+                }
             }
             .padding(40)
         }
+    }
+
+    private var formattedSnoozeDuration: String {
+        let minutes = settings.snoozeDurationMinutes
+        if minutes.rounded() == minutes {
+            return "\(Int(minutes)) min"
+        }
+        return String(format: "%.1f min", minutes)
     }
 
     @ViewBuilder

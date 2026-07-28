@@ -67,7 +67,7 @@ final class BreakOverlayController {
         }
     }
 
-    func showSnoozeConfirmation() {
+    func showSnoozeConfirmation(minutes: Double) {
         confirmationWindow?.close()
 
         let size = NSSize(width: 310, height: 84)
@@ -88,7 +88,9 @@ final class BreakOverlayController {
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
-        panel.contentView = NSHostingView(rootView: SnoozeConfirmationView())
+        panel.contentView = NSHostingView(
+            rootView: SnoozeConfirmationView(minutes: minutes)
+        )
         panel.orderFrontRegardless()
         confirmationWindow = panel
 
@@ -162,6 +164,8 @@ final class BreakOverlayController {
 }
 
 private struct SnoozeConfirmationView: View {
+    let minutes: Double
+
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "clock.badge.checkmark.fill")
@@ -172,7 +176,7 @@ private struct SnoozeConfirmationView: View {
                 Text("Break snoozed")
                     .font(.headline)
                     .foregroundStyle(.white)
-                Text("We’ll remind you again in 5 minutes.")
+                Text("We’ll remind you again in \(formattedDuration).")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.72))
             }
@@ -181,5 +185,12 @@ private struct SnoozeConfirmationView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(.black.opacity(0.9), in: RoundedRectangle(cornerRadius: 14))
         .padding(5)
+    }
+
+    private var formattedDuration: String {
+        if minutes.rounded() == minutes {
+            return "\(Int(minutes)) minutes"
+        }
+        return String(format: "%.1f minutes", minutes)
     }
 }

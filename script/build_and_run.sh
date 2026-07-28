@@ -5,6 +5,7 @@ MODE="${1:-run}"
 APP_NAME="LookAway"
 BUNDLE_ID="app.lookaway.LookAway"
 MIN_SYSTEM_VERSION="14.0"
+BUILD_CONFIGURATION="${LOOKAWAY_BUILD_CONFIGURATION:-debug}"
 
 if [[ -z "${DEVELOPER_DIR:-}" && -d /Library/Developer/CommandLineTools ]]; then
   export DEVELOPER_DIR="/Library/Developer/CommandLineTools"
@@ -18,12 +19,12 @@ APP_MACOS="$APP_CONTENTS/MacOS"
 APP_BINARY="$APP_MACOS/$APP_NAME"
 INFO_PLIST="$APP_CONTENTS/Info.plist"
 
-BUILD_FLAGS=(--disable-index-store --product "$APP_NAME")
+BUILD_FLAGS=(--disable-index-store --configuration "$BUILD_CONFIGURATION" --product "$APP_NAME")
 
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 
 swift build "${BUILD_FLAGS[@]}"
-BUILD_BINARY="$(swift build --disable-index-store --show-bin-path)/$APP_NAME"
+BUILD_BINARY="$(swift build --disable-index-store --configuration "$BUILD_CONFIGURATION" --show-bin-path)/$APP_NAME"
 
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_MACOS"
@@ -64,6 +65,8 @@ open_app() {
 }
 
 case "$MODE" in
+  --build|build)
+    ;;
   run)
     open_app
     ;;
@@ -84,7 +87,7 @@ case "$MODE" in
     pgrep -x "$APP_NAME" >/dev/null
     ;;
   *)
-    echo "usage: $0 [run|--debug|--logs|--telemetry|--verify]" >&2
+    echo "usage: $0 [run|--build|--debug|--logs|--telemetry|--verify]" >&2
     exit 2
     ;;
 esac

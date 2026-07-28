@@ -12,6 +12,7 @@ public struct BreakSchedulerSnapshot: Equatable, Sendable {
     public var activeElapsed: TimeInterval
     public var breakRemaining: TimeInterval
     public var emergencyOverrideProgress: TimeInterval
+    public var snoozeRemaining: TimeInterval
     public var isBreakActive: Bool
     public var isEmergencyOverrideActive: Bool
 
@@ -19,12 +20,14 @@ public struct BreakSchedulerSnapshot: Equatable, Sendable {
         activeElapsed: TimeInterval,
         breakRemaining: TimeInterval,
         emergencyOverrideProgress: TimeInterval,
+        snoozeRemaining: TimeInterval = 0,
         isBreakActive: Bool,
         isEmergencyOverrideActive: Bool
     ) {
         self.activeElapsed = activeElapsed
         self.breakRemaining = breakRemaining
         self.emergencyOverrideProgress = emergencyOverrideProgress
+        self.snoozeRemaining = snoozeRemaining
         self.isBreakActive = isBreakActive
         self.isEmergencyOverrideActive = isEmergencyOverrideActive
     }
@@ -34,15 +37,18 @@ public struct BreakSchedulerPersistedState: Codable, Equatable, Sendable {
     public var activeElapsed: TimeInterval
     public var breakElapsed: TimeInterval
     public var isBreakActive: Bool
+    public var snoozeRemaining: TimeInterval?
 
     public init(
         activeElapsed: TimeInterval,
         breakElapsed: TimeInterval,
-        isBreakActive: Bool
+        isBreakActive: Bool,
+        snoozeRemaining: TimeInterval? = nil
     ) {
         self.activeElapsed = activeElapsed
         self.breakElapsed = breakElapsed
         self.isBreakActive = isBreakActive
+        self.snoozeRemaining = snoozeRemaining
     }
 }
 
@@ -52,6 +58,7 @@ public struct BreakScheduler: Sendable {
     private var activeElapsed: TimeInterval
     private var breakElapsed: TimeInterval
     private var emergencyOverrideElapsed: TimeInterval
+    private var snoozeRemaining: TimeInterval
     private var isBreakActive: Bool
     private var isEmergencyOverrideActive: Bool
 
@@ -60,6 +67,7 @@ public struct BreakScheduler: Sendable {
         self.activeElapsed = 0
         self.breakElapsed = 0
         self.emergencyOverrideElapsed = 0
+        self.snoozeRemaining = 0
         self.isBreakActive = false
         self.isEmergencyOverrideActive = false
     }
@@ -69,6 +77,7 @@ public struct BreakScheduler: Sendable {
             activeElapsed: activeElapsed,
             breakRemaining: max(0, settings.breakDuration - breakElapsed),
             emergencyOverrideProgress: emergencyOverrideElapsed,
+            snoozeRemaining: snoozeRemaining,
             isBreakActive: isBreakActive,
             isEmergencyOverrideActive: isEmergencyOverrideActive
         )
@@ -78,7 +87,8 @@ public struct BreakScheduler: Sendable {
         BreakSchedulerPersistedState(
             activeElapsed: activeElapsed,
             breakElapsed: breakElapsed,
-            isBreakActive: isBreakActive
+            isBreakActive: isBreakActive,
+            snoozeRemaining: snoozeRemaining
         )
     }
 
@@ -94,6 +104,7 @@ public struct BreakScheduler: Sendable {
         activeElapsed = 0
         breakElapsed = 0
         emergencyOverrideElapsed = 0
+        snoozeRemaining = 0
         isBreakActive = false
         isEmergencyOverrideActive = false
     }
@@ -110,6 +121,7 @@ public struct BreakScheduler: Sendable {
         activeElapsed = min(max(0, state.activeElapsed), settings.workInterval)
         breakElapsed = min(max(0, state.breakElapsed), settings.breakDuration)
         isBreakActive = state.isBreakActive && breakElapsed < settings.breakDuration
+        snoozeRemaining = max(0, state.snoozeRemaining ?? 0)
         emergencyOverrideElapsed = 0
         isEmergencyOverrideActive = false
     }
@@ -127,7 +139,8 @@ public struct BreakScheduler: Sendable {
         guard isBreakActive else { return }
 
         lastTick = now
-        activeElapsed = max(0, settings.workInterval - max(1, duration))
+        activeElapsed = 0
+        snoozeRemaining = max(1, duration)
         breakElapsed = 0
         emergencyOverrideElapsed = 0
         isBreakActive = false
@@ -162,12 +175,22 @@ public struct BreakScheduler: Sendable {
         }
 
         if idleSeconds >= settings.idleResetThreshold {
-            guard activeElapsed > 0 else { return [] }
+            guard activeElapsed > 0 || snoozeRemaining > 0 else { return [] }
             activeElapsed = 0
+            snoozeRemaining = 0
             return [.naturalBreakCompleted]
         }
 
         guard idleSeconds <= settings.activeInputWindow else { return [] }
+
+        if snoozeRemaining > 0 {
+            snoozeRemaining = max(0, snoozeRemaining - delta)
+            if snoozeRemaining == 0 {
+                beginBreak()
+                return [.breakStarted]
+            }
+            return []
+        }
 
         activeElapsed += delta
         if activeElapsed >= settings.workInterval {
@@ -200,6 +223,7 @@ public struct BreakScheduler: Sendable {
         isBreakActive = true
         breakElapsed = 0
         emergencyOverrideElapsed = 0
+        snoozeRemaining = 0
         isEmergencyOverrideActive = false
     }
 
@@ -207,6 +231,7 @@ public struct BreakScheduler: Sendable {
         activeElapsed = 0
         breakElapsed = 0
         emergencyOverrideElapsed = 0
+        snoozeRemaining = 0
         isBreakActive = false
         isEmergencyOverrideActive = false
     }

@@ -1,8 +1,21 @@
 import ServiceManagement
 
 enum LaunchAtLoginManager {
-    static func ensureEnabled() -> String {
+    static func apply(enabled: Bool) -> String {
         let service = SMAppService.mainApp
+
+        if !enabled {
+            guard service.status != .notRegistered else {
+                return "Start at login is off"
+            }
+
+            do {
+                try service.unregister()
+                return "Start at login is off"
+            } catch {
+                return "Could not disable start at login"
+            }
+        }
 
         switch service.status {
         case .enabled:

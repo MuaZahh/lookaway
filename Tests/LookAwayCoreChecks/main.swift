@@ -113,9 +113,34 @@ func schedulerCanSnoozeAndStartAgainFiveMinutesLater() {
     scheduler.snoozeBreak(now: 101, duration: 5 * 60)
 
     expect(!scheduler.snapshot.isBreakActive, "snooze should close the active break")
-    expectClose(scheduler.snapshot.activeElapsed, 20 * 60, "snooze should leave five minutes")
+    expectClose(scheduler.snapshot.snoozeRemaining, 5 * 60, "snooze should leave five minutes")
     expect(scheduler.tick(now: 400.99, idleSeconds: 0) == [], "snooze should not end early")
     expect(scheduler.tick(now: 401, idleSeconds: 0) == [.breakStarted], "break should return after five minutes")
+}
+
+func snoozeCanBeLongerThanWorkInterval() {
+    var scheduler = BreakScheduler(
+        settings: BreakSettings(workInterval: 60, breakDuration: 10)
+    )
+
+    expect(scheduler.startBreak(now: 0) == [.breakStarted], "manual break should start")
+    scheduler.snoozeBreak(now: 1, duration: 5 * 60)
+
+    expect(scheduler.tick(now: 300.99, idleSeconds: 0) == [], "long snooze should not use the shorter work interval")
+    expect(scheduler.tick(now: 301, idleSeconds: 0) == [.breakStarted], "long snooze should honor its exact duration")
+}
+
+func snoozeSurvivesRestart() {
+    var original = BreakScheduler(settings: BreakSettings(workInterval: 60, breakDuration: 10))
+    expect(original.startBreak(now: 0) == [.breakStarted], "manual break should start")
+    original.snoozeBreak(now: 1, duration: 5 * 60)
+
+    var restored = BreakScheduler(settings: BreakSettings(workInterval: 60, breakDuration: 10))
+    restored.restore(original.persistedState, now: 1_000)
+
+    expectClose(restored.snapshot.snoozeRemaining, 5 * 60, "restored snooze should preserve its duration")
+    expect(restored.tick(now: 1_299.99, idleSeconds: 0) == [], "restored snooze should not end early")
+    expect(restored.tick(now: 1_300, idleSeconds: 0) == [.breakStarted], "restored snooze should finish on time")
 }
 
 func schedulerProgressRestoresWithoutCountingOfflineTime() {
@@ -143,6 +168,34 @@ func rebasingClockDoesNotCountPausedTime() {
     expect(scheduler.tick(now: 1_008, idleSeconds: 0) == [.breakStarted], "countdown should resume where it paused")
 }
 
+func preferencesRoundTripThroughUserDefaults() {
+    let suiteName = "LookAwayCoreChecks.\(UUID().uuidString)"
+    guard let defaults = UserDefaults(suiteName: suiteName) else {
+        expect(false, "isolated user defaults should be available")
+        return
+    }
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+
+    let expected = LookAwayPreferences(
+        workIntervalMinutes: 42,
+        breakDurationSeconds: 75,
+        idleResetMinutes: 7.5,
+        activeInputWindowSeconds: 12.5,
+        emergencyHoldSeconds: 8,
+        mode: .focused,
+        snoozeDurationMinutes: 9.5,
+        playBreakSound: false,
+        showCountdown: false,
+        allowSnooze: false,
+        breakTitle: "Rest your eyes",
+        breakSubtitle: "Look out a window",
+        launchAtLogin: false
+    )
+
+    expected.save(to: defaults)
+    expect(LookAwayPreferences.load(from: defaults) == expected, "every preference should persist and reload")
+}
+
 startsBreakAtExactWorkInterval()
 activeTimeDoesNotAccumulatePastInputWindow()
 naturalBreakResetsAtExactIdleThreshold()
@@ -152,7 +205,10 @@ emergencyOverrideCancelResetsProgress()
 duplicateAndNegativeTicksDoNotMoveTimeForward()
 settingsAreNormalizedAndClampProgress()
 schedulerCanSnoozeAndStartAgainFiveMinutesLater()
+snoozeCanBeLongerThanWorkInterval()
+snoozeSurvivesRestart()
 schedulerProgressRestoresWithoutCountingOfflineTime()
 rebasingClockDoesNotCountPausedTime()
+preferencesRoundTripThroughUserDefaults()
 
 print("LookAwayCoreChecks passed")

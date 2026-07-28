@@ -3,6 +3,8 @@ import Foundation
 import LookAwayCore
 
 final class AppCoordinator {
+    var onOpenSettings: (() -> Void)?
+
     private let settingsStore: SettingsStore
     private let stateStore: AppStateStore
     private let schedulerStateStore: SchedulerStateStore
@@ -50,9 +52,8 @@ final class AppCoordinator {
         statusItemController.onTakeBreakNow = { [weak self] in
             self?.takeBreakNow()
         }
-        statusItemController.onOpenSettings = {
-            NSApp.activate(ignoringOtherApps: true)
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        statusItemController.onOpenSettings = { [weak self] in
+            self?.onOpenSettings?()
         }
         statusItemController.onQuit = {
             NSApp.terminate(nil)
@@ -92,6 +93,9 @@ final class AppCoordinator {
         let wasEnabled = stateStore.isEnabled
         scheduler.updateSettings(settingsStore.breakSettings)
         scheduler.rebaseClock(now: clock.uptime)
+        stateStore.launchAtLoginMessage = LaunchAtLoginManager.apply(
+            enabled: settingsStore.launchAtLogin
+        )
 
         if !settingsStore.isEnabled {
             overlayController.hide()
@@ -148,7 +152,9 @@ final class AppCoordinator {
 
     private func beginBreakPresentation() {
         stateStore.lastEventMessage = "Break started"
-        NSSound.beep()
+        if settingsStore.playBreakSound {
+            NSSound.beep()
+        }
 
         guard settingsStore.mode.showsOverlay else {
             return
@@ -169,13 +175,14 @@ final class AppCoordinator {
     }
 
     private func snoozeBreak() {
-        guard scheduler.snapshot.isBreakActive else { return }
+        guard scheduler.snapshot.isBreakActive, settingsStore.allowSnooze else { return }
 
-        scheduler.snoozeBreak(now: clock.uptime, duration: 5 * 60)
+        let snoozeSeconds = settingsStore.snoozeDurationMinutes * 60
+        scheduler.snoozeBreak(now: clock.uptime, duration: snoozeSeconds)
         stateStore.skippedBreaks += 1
-        stateStore.lastEventMessage = "Break snoozed for 5 minutes"
+        stateStore.lastEventMessage = "Break snoozed for \(Self.shortTime(snoozeSeconds))"
         overlayController.hide()
-        overlayController.showSnoozeConfirmation()
+        overlayController.showSnoozeConfirmation(minutes: settingsStore.snoozeDurationMinutes)
         syncState()
     }
 
@@ -206,7 +213,9 @@ final class AppCoordinator {
             return "Break \(Self.shortTime(snapshot.breakRemaining))"
         }
 
-        let remaining = max(0, scheduler.settings.workInterval - snapshot.activeElapsed)
+        let remaining = snapshot.snoozeRemaining > 0
+            ? snapshot.snoozeRemaining
+            : max(0, scheduler.settings.workInterval - snapshot.activeElapsed)
         return "\(Self.shortTime(remaining)) left"
     }
 

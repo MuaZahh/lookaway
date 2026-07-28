@@ -60,6 +60,7 @@ Click the little eye in the menu bar and choose **Settings**. You can change:
 - Break mode
 - Countdown visibility
 - Break sound
+- Break-finished sound
 - Whether Esc can snooze
 - How early the macOS warning appears
 - Your global “add more time” keyboard shortcut

@@ -70,6 +70,7 @@ struct SettingsView: View {
                         Toggle("Show countdown", isOn: $settings.showCountdown)
                         Toggle("Allow Esc to snooze", isOn: $settings.allowSnooze)
                         Toggle("Play a sound when a break starts", isOn: $settings.playBreakSound)
+                        Toggle("Play a sound when a break finishes", isOn: $settings.playBreakCompleteSound)
                     }
                     .textFieldStyle(.roundedBorder)
                     .padding(.top, 4)

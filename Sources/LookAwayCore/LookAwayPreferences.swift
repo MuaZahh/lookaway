@@ -9,6 +9,7 @@ public struct LookAwayPreferences: Equatable, Sendable {
     public var mode: BreakMode
     public var snoozeDurationMinutes: Double
     public var playBreakSound: Bool
+    public var playBreakCompleteSound: Bool
     public var showCountdown: Bool
     public var allowSnooze: Bool
     public var breakTitle: String
@@ -29,6 +30,7 @@ public struct LookAwayPreferences: Equatable, Sendable {
         mode: BreakMode = .strict,
         snoozeDurationMinutes: Double = 5,
         playBreakSound: Bool = true,
+        playBreakCompleteSound: Bool = true,
         showCountdown: Bool = true,
         allowSnooze: Bool = true,
         breakTitle: String = "Look far away",
@@ -48,6 +50,7 @@ public struct LookAwayPreferences: Equatable, Sendable {
         self.mode = mode
         self.snoozeDurationMinutes = snoozeDurationMinutes
         self.playBreakSound = playBreakSound
+        self.playBreakCompleteSound = playBreakCompleteSound
         self.showCountdown = showCountdown
         self.allowSnooze = allowSnooze
         self.breakTitle = breakTitle
@@ -72,6 +75,7 @@ public struct LookAwayPreferences: Equatable, Sendable {
             mode: defaults.string(forKey: Keys.mode).flatMap(BreakMode.init(rawValue:)) ?? fallback.mode,
             snoozeDurationMinutes: double(defaults, key: Keys.snoozeDurationMinutes, fallback: fallback.snoozeDurationMinutes),
             playBreakSound: bool(defaults, key: Keys.playBreakSound, fallback: fallback.playBreakSound),
+            playBreakCompleteSound: bool(defaults, key: Keys.playBreakCompleteSound, fallback: fallback.playBreakCompleteSound),
             showCountdown: bool(defaults, key: Keys.showCountdown, fallback: fallback.showCountdown),
             allowSnooze: bool(defaults, key: Keys.allowSnooze, fallback: fallback.allowSnooze),
             breakTitle: defaults.string(forKey: Keys.breakTitle) ?? fallback.breakTitle,
@@ -94,6 +98,7 @@ public struct LookAwayPreferences: Equatable, Sendable {
         defaults.set(mode.rawValue, forKey: Keys.mode)
         defaults.set(snoozeDurationMinutes, forKey: Keys.snoozeDurationMinutes)
         defaults.set(playBreakSound, forKey: Keys.playBreakSound)
+        defaults.set(playBreakCompleteSound, forKey: Keys.playBreakCompleteSound)
         defaults.set(showCountdown, forKey: Keys.showCountdown)
         defaults.set(allowSnooze, forKey: Keys.allowSnooze)
         defaults.set(breakTitle, forKey: Keys.breakTitle)
@@ -142,6 +147,7 @@ public struct LookAwayPreferences: Equatable, Sendable {
         static let mode = "mode"
         static let snoozeDurationMinutes = "snoozeDurationMinutes"
         static let playBreakSound = "playBreakSound"
+        static let playBreakCompleteSound = "playBreakCompleteSound"
         static let showCountdown = "showCountdown"
         static let allowSnooze = "allowSnooze"
         static let breakTitle = "breakTitle"

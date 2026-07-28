@@ -163,6 +163,9 @@ final class AppCoordinator {
                 stateStore.completedBreaks += 1
                 stateStore.lastEventMessage = "Break complete"
                 overlayController.hide()
+                if settingsStore.playBreakCompleteSound {
+                    playBreakCompleteSound()
+                }
             case .naturalBreakCompleted:
                 warningGate.reset()
                 stateStore.naturalBreaks += 1
@@ -319,5 +322,13 @@ final class AppCoordinator {
         }
 
         return "\(seconds)s"
+    }
+
+    private func playBreakCompleteSound() {
+        if let sound = NSSound(named: NSSound.Name("Glass")) {
+            sound.play()
+        } else {
+            NSSound.beep()
+        }
     }
 }

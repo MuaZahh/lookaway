@@ -40,6 +40,10 @@ final class SettingsStore: ObservableObject {
         didSet { persistAndNotify() }
     }
 
+    @Published var playBreakCompleteSound: Bool {
+        didSet { persistAndNotify() }
+    }
+
     @Published var showCountdown: Bool {
         didSet { persistAndNotify() }
     }
@@ -95,6 +99,7 @@ final class SettingsStore: ObservableObject {
         self.emergencyHoldSeconds = preferences.emergencyHoldSeconds
         self.snoozeDurationMinutes = preferences.snoozeDurationMinutes
         self.playBreakSound = preferences.playBreakSound
+        self.playBreakCompleteSound = preferences.playBreakCompleteSound
         self.showCountdown = preferences.showCountdown
         self.allowSnooze = preferences.allowSnooze
         self.breakTitle = preferences.breakTitle
@@ -132,6 +137,7 @@ final class SettingsStore: ObservableObject {
         mode = fallback.mode
         snoozeDurationMinutes = preferences.snoozeDurationMinutes
         playBreakSound = preferences.playBreakSound
+        playBreakCompleteSound = preferences.playBreakCompleteSound
         showCountdown = preferences.showCountdown
         allowSnooze = preferences.allowSnooze
         breakTitle = preferences.breakTitle
@@ -154,6 +160,7 @@ final class SettingsStore: ObservableObject {
             mode: mode,
             snoozeDurationMinutes: snoozeDurationMinutes,
             playBreakSound: playBreakSound,
+            playBreakCompleteSound: playBreakCompleteSound,
             showCountdown: showCountdown,
             allowSnooze: allowSnooze,
             breakTitle: breakTitle,

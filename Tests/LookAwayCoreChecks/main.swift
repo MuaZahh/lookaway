@@ -197,6 +197,7 @@ func preferencesRoundTripThroughUserDefaults() {
         mode: .focused,
         snoozeDurationMinutes: 9.5,
         playBreakSound: false,
+        playBreakCompleteSound: false,
         showCountdown: false,
         allowSnooze: false,
         breakTitle: "Rest your eyes",
